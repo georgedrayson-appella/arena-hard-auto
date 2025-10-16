@@ -43,7 +43,7 @@ def get_endpoint(endpoint_list):
     return api_dict
 
 
-def chat_completion_openai(model, messages, temperature, max_tokens, api_dict=None):
+def chat_completion_openai(model, messages, temperature, max_tokens=None, api_dict=None):
     import openai
 
     if api_dict:
@@ -58,11 +58,16 @@ def chat_completion_openai(model, messages, temperature, max_tokens, api_dict=No
     for _ in range(API_MAX_RETRY):
         try:
             # print(messages)
+            completion_kwargs = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+            }
+            if max_tokens is not None:
+                completion_kwargs["max_tokens"] = max_tokens
+            
             completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
+                **completion_kwargs
                 # extra_body={"guided_choice": GUIDED_CHOICES} if GUIDED_CHOICES else None,
             )
             output = completion.choices[0].message.content

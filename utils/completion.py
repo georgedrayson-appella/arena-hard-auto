@@ -118,7 +118,7 @@ def make_config(config_file: str) -> dict:
 
 
 @register_api("openai")
-def chat_completion_openai(model, messages, temperature, max_tokens, api_dict=None, **kwargs):
+def chat_completion_openai(model, messages, temperature, max_tokens=None, api_dict=None, **kwargs):
     import openai
     if api_dict:
         client = openai.OpenAI(
@@ -134,12 +134,15 @@ def chat_completion_openai(model, messages, temperature, max_tokens, api_dict=No
     output = API_ERROR_OUTPUT
     for _ in range(API_MAX_RETRY):
         try:
-            completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                )
+            completion_kwargs = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+            }
+            if max_tokens is not None:
+                completion_kwargs["max_tokens"] = max_tokens
+            
+            completion = client.chat.completions.create(**completion_kwargs)
             output = {
                 "answer": completion.choices[0].message.content
             }
@@ -153,6 +156,67 @@ def chat_completion_openai(model, messages, temperature, max_tokens, api_dict=No
         except KeyError:
             print(type(e), e)
             break
+    
+    return output
+
+
+@register_api("gpt5")
+def chat_completion_gpt5(model, messages, temperature, api_dict=None, **kwargs):
+    import openai
+    if api_dict:
+        client = openai.OpenAI(
+            base_url=api_dict["api_base"],
+            api_key=api_dict["api_key"],
+        )
+    else:
+        client = openai.OpenAI()
+    
+    # Convert messages to a single input string
+    input_text = ""
+    for message in messages:
+        role = message["role"]
+        content = message["content"]
+        if role == "system":
+            input_text += f"System: {content}\n\n"
+        elif role == "user":
+            input_text += f"User: {content}\n\n"
+        elif role == "assistant":
+            input_text += f"Assistant: {content}\n\n"
+    
+    # Remove trailing newlines
+    input_text = input_text.rstrip()
+    
+    output = API_ERROR_OUTPUT
+    for _ in range(API_MAX_RETRY):
+        try:
+            response_kwargs = {
+                "model": model,
+                "input": input_text,
+            }
+            
+            # Add reasoning parameter if provided
+            if "reasoning" in kwargs:
+                response_kwargs["reasoning"] = kwargs["reasoning"]
+            
+            # Add text parameter if provided
+            if "text" in kwargs:
+                response_kwargs["text"] = kwargs["text"]
+            
+            result = client.responses.create(**response_kwargs)
+            output = {
+                "answer": result.output_text
+            }
+            break
+        except openai.RateLimitError as e:
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
+        except openai.BadRequestError as e:
+            print(messages)
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
+        except Exception as e:
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
     
     return output
 
@@ -299,14 +363,23 @@ def chat_completion_anthropic(model, messages, temperature, max_tokens, api_dict
     for _ in range(API_MAX_RETRY):
         try:
             c = anthropic.Anthropic(api_key=api_key)
-            response = c.messages.create(
-                model=model,
-                messages=messages,
-                stop_sequences=[anthropic.HUMAN_PROMPT],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                system=sys_msg
-            )
+            
+            # Build request parameters
+            request_params = {
+                "model": model,
+                "messages": messages,
+                "stop_sequences": [anthropic.HUMAN_PROMPT],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "system": sys_msg
+            }
+            
+            # Handle thinking parameter - if thinking is False, disable it explicitly
+            if "thinking" in kwargs:
+                if kwargs["thinking"] is False:
+                    request_params["thinking"] = {"type": "disabled"}
+            
+            response = c.messages.create(**request_params)
             output = {
                 "answer": response.content[0].text
             }
@@ -351,31 +424,56 @@ def chat_completion_anthropic_thinking(model, messages, max_tokens, budget_token
 
 @register_api("mistral")
 def chat_completion_mistral(model, messages, temperature, max_tokens, **kwargs):
-    from mistralai.client import MistralClient
-    from mistralai.models.chat_completion import ChatMessage
-    from mistralai.exceptions import MistralException
+    try:
+        # Try new Mistral SDK (v1.0+)
+        from mistralai import Mistral
+        
+        api_key = os.environ["MISTRAL_API_KEY"]
+        client = Mistral(api_key=api_key)
+        
+        output = API_ERROR_OUTPUT
+        for _ in range(API_MAX_RETRY):
+            try:
+                chat_response = client.chat.complete(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                output = {
+                    "answer": chat_response.choices[0].message.content
+                }
+                break
+            except Exception as e:
+                print(type(e), e)
+                time.sleep(API_RETRY_SLEEP)
+    except ImportError:
+        # Fallback to old Mistral SDK (v0.x)
+        from mistralai.client import MistralClient
+        from mistralai.models.chat_completion import ChatMessage
+        from mistralai.exceptions import MistralException
 
-    api_key = os.environ["MISTRAL_API_KEY"]
-    client = MistralClient(api_key=api_key)
+        api_key = os.environ["MISTRAL_API_KEY"]
+        client = MistralClient(api_key=api_key)
 
-    prompts = [ChatMessage(role=message["role"], content=message["content"]) for message in messages]
-    
-    output = API_ERROR_OUTPUT
-    for _ in range(API_MAX_RETRY):
-        try:
-            chat_response = client.chat(
-                model=model,
-                messages=prompts,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            output = {
-                "answer": chat_response.choices[0].message.content
-            }
-            break
-        except MistralException as e:
-            print(type(e), e)
-            break
+        prompts = [ChatMessage(role=message["role"], content=message["content"]) for message in messages]
+        
+        output = API_ERROR_OUTPUT
+        for _ in range(API_MAX_RETRY):
+            try:
+                chat_response = client.chat(
+                    model=model,
+                    messages=prompts,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                output = {
+                    "answer": chat_response.choices[0].message.content
+                }
+                break
+            except MistralException as e:
+                print(type(e), e)
+                break
 
     return output
 
@@ -451,21 +549,18 @@ def http_completion_gemini(model, messages, **kwargs):
             "systemInstruction": sys_prompt,
     }
 
-    if "temperature" in kwargs and "max_tokens" in kwargs:
-        gen_config = {
-            "temperature": kwargs["temperature"],
-            "maxOutputTokens": kwargs["max_tokens"],
+    # Build generationConfig if any relevant parameters are present
+    gen_config = {}
+    if "temperature" in kwargs:
+        gen_config["temperature"] = kwargs["temperature"]
+    if "max_tokens" in kwargs:
+        gen_config["maxOutputTokens"] = kwargs["max_tokens"]
+    if "thinking_budget" in kwargs:
+        gen_config["thinkingConfig"] = {
+            "thinkingBudget": kwargs["thinking_budget"]
         }
-        json_request["generationConfig"] = gen_config
-    elif "temperature" in kwargs:
-        gen_config = {
-            "temperature": kwargs["temperature"],
-        }
-        json_request["generationConfig"] = gen_config
-    elif "max_tokens" in kwargs:
-        gen_config = {
-            "maxOutputTokens": kwargs["max_tokens"],
-        }
+    
+    if gen_config:
         json_request["generationConfig"] = gen_config
         
     output = API_ERROR_OUTPUT

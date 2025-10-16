@@ -4,10 +4,14 @@ import os
 import torch
 from glob import glob
 from tqdm import tqdm
-
+import random
+import numpy as np
 from utils.judge_utils import JUDGE_SETTINGS
 from utils.math_utils import one_hot_encode, to_winrate_probabilities, bootstrap_pairwise_model
 
+# Fix the seed for reproducibility
+random.seed(42)
+np.random.seed(42)
 
 def load_judgments(judge_names, benchmark, weight=3):
     dfs = []

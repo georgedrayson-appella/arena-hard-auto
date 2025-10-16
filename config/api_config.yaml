@@ -1,14 +1,30 @@
-# Examples of api config below
+gpt-5:
+    model: gpt-5
+    endpoints: null
+    api_type: gpt5
+    parallel: 32
+    temperature: 1
 
-# Proprietary models examples
-gpt-4-1106-preview:
-    model: gpt-4-1106-preview
+gpt-5-non-reasoning:
+    model: gpt-5
+    endpoints: null
+    api_type: gpt5
+    parallel: 32
+    temperature: 1
+    reasoning:
+        effort: low
+    text:
+        verbosity: low
+
+gpt-4.1-2025-04-14:
+    model: gpt-4.1-2025-04-14
     endpoints: null
     api_type: openai
-    parallel: 32
-    max_tokens: 4096
+    parallel: 64
+    max_tokens: 32000
     temperature: 0.0
 
+# JUDGE MODEL USING RECOMMENDED SETTINGS FROM README
 gpt-4.1:
     model: gpt-4.1
     endpoints: null
@@ -17,94 +33,82 @@ gpt-4.1:
     max_tokens: 32000
     temperature: 0.0
 
-# gemini-2.5:
-#     model: gemini-2.5-pro-preview-03-25
-#     endpoints: null
-#     api_type: gemini
-#     parallel: 50
-
-gemini-2.5:
-    model: gemini-2.5-pro-preview-03-25
+gemini-2.5-flash:
+    model: gemini-2.5-flash
     endpoints: null
-    api_type: vertex
-    parallel: 16
-    project_id: <project_id>
-    regions: <region>
+    api_type: gemini
+    parallel: 50
+    thinking_budget: 0
 
-claude-3-7-sonnet-20250219-thinking-16k:
-    model: claude-3-7-sonnet-20250219
-    endpoints: null
-    max_tokens: 20000
-    budget_tokens: 16000
-    api_type: anthropic_thinking
-    parallel: 32
-
-deepseek-r1:
+deepseek-v3.2-exp:
+    model: deepseek-chat
     endpoints:
-        - api_key: <your_api_key>
-    api_type: deepseek_reasoner
+        - api_key: "API_KEY"
+    api_type: deepseek
     parallel: 32
+    max_tokens: 8192
 
-claude-3-5-sonnet-20241022:
-    model: claude-3-5-sonnet-20241022
+claude-sonnet-4-5-20250929:
+    model: claude-sonnet-4-5-20250929
     endpoints: null
     max_tokens: 20000
     api_type: anthropic
-    parallel: 32
+    parallel: 2
+    temperature: 1.0
+    thinking: false
 
-o3-mini-2025-01-31-high:
-    model: o3-mini-2025-01-31
-    endpoints: null
-    reasoning_effort: high
-    api_type: openai_thinking
-    parallel: 32
-
-gpt-4o-mini-2024-07-18:
-    model: gpt-4o-mini
-    endpoints: null
+grok-4-fast-non-reasoning:
+    model: grok-4-fast-non-reasoning
+    endpoints:
+        - api_base: https://api.x.ai/v1
+          api_key: "API_KEY"
     api_type: openai
-    parallel: 128
-    max_tokens: 8196
+    parallel: 32
+    max_tokens: 8192
     temperature: 0.0
 
-# Local inference examples
-qwq-32b:
-    model: Qwen/QwQ-32B
+mistral-medium-2508:
+    model: mistral-medium-2508
     endpoints: null
-    api_type: sglang
-    local_engine: True
-    temperature: 0.6
-    end_think_token: "</think>"
-    max_tokens: 32000
-    
-gemma-3-27b-it:
-    model: google/gemma-3-27b-it
+    api_type: mistral
+    parallel: 32
+    max_tokens: 8192
+    temperature: 0.0
+
+
+qwen3-30b-a3b:
+    model: Qwen/Qwen3-30B-A3B-Instruct-2507
     endpoints:
-        - api_base: http://0.0.0.0:<port_number>/v1
+        - api_base: http://0.0.0.0:8000/v1
           api_key: '-'
     api_type: openai
-    parallel: 128
+    parallel: 32
     max_tokens: 8196
-    temperature: 0.0
+    temperature: 0.7
+    top_p: 0.8
+    top_k: 20
+    min_p: 0.0
 
-
-#******** AWS NOVA MODEL *****************#
-aws_nova_light_v1:
-    model: aws_nova_light_v1
-    model_id: us.amazon.nova-lite-v1:0
-    endpoints: null
-    api_type: aws_nova
-    parallel: 8 
-    max_tokens: 4096
-    temperature: 0.0
-
-#******** VLLM SERVER *****************#
-qwen3-30b-a3b:
-    model: Qwen/Qwen3-30B-A3B-Instruct-2507  # Replace with your actual model name
+qwen3-235b:
+    model: Qwen/Qwen3-235B-A22B-Instruct-2507
     endpoints:
-        - api_base: "https://localhost:8000/v1"  # Uses MODEL_URL from .env
+        - api_base: http://0.0.0.0:8000/v1
+          api_key: '-'
     api_type: openai
-    parallel: 32  # Adjust based on your server capacity
+    parallel: 16
+    max_tokens: 8196
+    temperature: 0.7
+    top_p: 0.8
+    top_k: 20
+    min_p: 0.0
+
+l1-235b:
+    model: locailabs/L1-235B
+    endpoints:
+        - api_base: http://0.0.0.0:8000/v1
+          api_key: '-'
+    api_type: openai
+    parallel: 16
     max_tokens: 8196
     temperature: 0.7
     top_p: 0.8
