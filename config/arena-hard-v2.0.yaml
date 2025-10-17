@@ -19,4 +19,16 @@ regex_patterns:
 prompt_template: "<|User Prompt|>\n{QUESTION}\n\n<|The Start of Assistant A's Answer|>\n{ANSWER_A}\n<|The End of Assistant A's Answer|>\n\n<|The Start of Assistant B's Answer|>\n{ANSWER_B}\n<|The End of Assistant B's Answer|>"
 
 model_list:
-  - l1-235b
+  - qwen3-235b-v23-fp8
+  # - qwen3-235b-orig-run-2
+  # - qwen3-235b-v27
+  # - qwen-235b-v23
+  # - qwen3-235b-orig
+  # - claude-sonnet-4-5-20250929-thinking
+  # - claude-sonnet-4-5-20250929
+  # - deepseek-v3.2-exp
+  # - gpt-4.1-2025-04-14
+  # - gpt-5
+  # - gpt-5-non-reasoning
+  # - grok-4-fast-non-reasoning
+  # - mistral-medium-2508
